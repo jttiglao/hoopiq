@@ -1,0 +1,7 @@
+nba_api
+pandas
+streamlit
+plotly
+anthropic
+schedule
+python-dotenv
