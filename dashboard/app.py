@@ -9,6 +9,11 @@ DATA_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "player_stats.
 # ── Load Data ────────────────────────────────────────────────────────────────
 @st.cache_data(ttl=0)
 def load_data():
+    if not os.path.exists(DATA_PATH):
+        import sys
+        sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
+        from etl.pipeline import run_pipeline
+        run_pipeline()
     df = pd.read_csv(DATA_PATH)
     return df
 # ── App ──────────────────────────────────────────────────────────────────────
