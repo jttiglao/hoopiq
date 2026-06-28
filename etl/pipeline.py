@@ -51,12 +51,60 @@ def export(df, filename):
     df.to_csv(path, index=False)
     print(f"Exported: {path}")
 
+# ── Pull team stats ──────────────────────────────────────────────────────────
+def fetch_team_stats():
+    from nba_api.stats.endpoints import leaguestandingsv3, teamestimatedmetrics
+    print("Fetching team stats...")
+    time.sleep(1)
+
+    # Standings for W/L record
+    standings = leaguestandingsv3.LeagueStandingsV3(
+        season=SEASON,
+        season_type="Regular Season"
+    )
+    df = standings.get_data_frames()[0]
+    return df
+
+def clean_team_stats(df):
+    print("Cleaning team stats...")
+    df = df.copy()
+    df.columns = [col.upper() for col in df.columns]
+
+    # Keep relevant columns
+    keep = [
+        "TEAMID", "TEAMCITY", "TEAMNAME", "CONFERENCE", "DIVISION",
+        "WINS", "LOSSES", "WINPCT", "HOME", "ROAD",
+        "POINTSPG", "OPPOINTSPG", "DIFFPOINTSPG",
+        "STREAK", "L10"
+    ]
+    # Only keep columns that exist
+    keep = [c for c in keep if c in df.columns]
+    df = df[keep]
+
+    df["TEAM"] = df["TEAMCITY"] + " " + df["TEAMNAME"]
+    df["WINS"] = pd.to_numeric(df["WINS"], errors="coerce")
+    df["LOSSES"] = pd.to_numeric(df["LOSSES"], errors="coerce")
+    df["WINPCT"] = pd.to_numeric(df["WINPCT"], errors="coerce").round(3)
+
+    return df
+
 # ── Main ─────────────────────────────────────────────────────────────────────
 def run_pipeline():
+    # Player stats
     raw = fetch_player_stats()
     clean = clean_player_stats(raw)
     export(clean, "player_stats.csv")
-    print(f"Pipeline complete. {len(clean)} players loaded.")
+    print(f"Player pipeline complete. {len(clean)} players loaded.")
+
+    # Team stats
+    try:
+        team_raw = fetch_team_stats()
+        team_clean = clean_team_stats(team_raw)
+        export(team_clean, "team_stats.csv")
+        print(f"Team pipeline complete. {len(team_clean)} teams loaded.")
+    except Exception as e:
+        print(f"Team stats failed: {e}")
+
     return clean
 
 if __name__ == "__main__":
